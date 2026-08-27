@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Identificador de Meteoritos</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1e1f26;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px 0;
+  }
+  .tarjeta {
+    width: 380px;
+    background: #2b2d3a;
+    border-radius: 20px;
+    padding: 28px 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+  h1 {
+    color: #ffffff;
+    font-size: 22px;
+    margin: 0 0 6px;
+    text-align: center;
+  }
+  .subtitulo {
+    color: #8a8d9f;
+    font-size: 13px;
+    text-align: center;
+    margin: 0 0 24px;
+    line-height: 1.4;
+  }
+  .pregunta {
+    margin-bottom: 20px;
+  }
+  .pregunta p {
+    color: #ffffff;
+    font-size: 14px;
+    margin: 0 0 10px;
+    line-height: 1.4;
+  }
+  .pregunta .criterio-num {
+    color: #ff9f43;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  .opciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .opciones button {
+    border: none;
+    border-radius: 10px;
+    padding: 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #3a3d4d;
+    color: #ffffff;
+    transition: filter 0.15s ease, background 0.15s ease;
+  }
+  .opciones button:hover { filter: brightness(1.15); }
+  .opciones button.seleccionado {
+    background: #4ade80;
+    color: #14151c;
+  }
+  .opciones button.seleccionado.no {
+    background: #f87171;
+  }
+  #analizar {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 0;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    background: #565a6e;
+    color: #ffffff;
+    margin-top: 8px;
+    transition: filter 0.15s ease, background 0.15s ease;
+  }
+  #analizar:enabled {
+    background: #ff9f43;
+    color: #1e1f26;
+  }
+  #analizar:enabled:hover { filter: brightness(1.1); }
+  #analizar:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .resultado {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 14px;
+    background: #14151c;
+    display: none;
+  }
+  .resultado.visible { display: block; }
+  .resultado .conteo {
+    color: #8a8d9f;
+    font-size: 13px;
+    margin: 0 0 6px;
+  }
+  .resultado .veredicto {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .resultado .nota {
+    color: #8a8d9f;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="tarjeta">
+  <h1>Identificador de Meteoritos</h1>
+  <p class="subtitulo">Responde los 3 criterios de campo más usados para reconocer un posible meteorito.</p>
+
+  <div class="pregunta">
+    <p><span class="criterio-num">1.</span>¿Es pesada la piedra en relación con su tamaño?</p>
+    <div class="opciones" data-pregunta="pesada">
+      <button data-valor="si">Sí</button>
+      <button data-valor="no">No</button>
+    </div>
+  </div>
+
+  <div class="pregunta">
+    <p><span class="criterio-num">2.</span>¿Es atraída por un imán?</p>
+    <div class="opciones" data-pregunta="iman">
+      <button data-valor="si">Sí</button>
+      <button data-valor="no">No</button>
+    </div>
+  </div>
+
+  <div class="pregunta">
+    <p><span class="criterio-num">3.</span>¿Tiene abolladuras como las que deja la punta de los dedos al presionar plastilina?</p>
+    <div class="opciones" data-pregunta="abolladuras">
+      <button data-valor="si">Sí</button>
+      <button data-valor="no">No</button>
+    </div>
+  </div>
+
+  <button id="analizar" disabled>Analizar</button>
+
+  <div class="resultado" id="resultado">
+    <p class="conteo" id="conteo"></p>
+    <p class="veredicto" id="veredicto"></p>
+    <p class="nota" id="nota"></p>
+  </div>
+</div>
+
+<script>
+  const respuestas = { pesada: null, iman: null, abolladuras: null };
+  const botonAnalizar = document.getElementById('analizar');
+  const panelResultado = document.getElementById('resultado');
+  const elConteo = document.getElementById('conteo');
+  const elVeredicto = document.getElementById('veredicto');
+  const elNota = document.getElementById('nota');
+
+  const NOTA_BASE = 'Esta es una guía informal de campo. Para una identificación científica certificada, un laboratorio o experto en meteorítica debe analizar la muestra.';
+
+  const NIVELES = [
+    {
+      minimo: 3,
+      color: '#4ade80',
+      titulo: 'Alta probabilidad de que sea un meteorito',
+    },
+    {
+      minimo: 2,
+      color: '#a3e635',
+      titulo: 'Probabilidad moderada-alta: se recomienda análisis de un experto',
+    },
+    {
+      minimo: 1,
+      color: '#fb923c',
+      titulo: 'Baja probabilidad: podría ser un "meteorowrong" (roca terrestre común)',
+    },
+    {
+      minimo: 0,
+      color: '#f87171',
+      titulo: 'Muy improbable que sea un meteorito',
+    },
+  ];
+
+  document.querySelectorAll('.opciones').forEach(grupo => {
+    const pregunta = grupo.dataset.pregunta;
+    grupo.querySelectorAll('button').forEach(boton => {
+      boton.addEventListener('click', () => {
+        respuestas[pregunta] = boton.dataset.valor === 'si';
+        grupo.querySelectorAll('button').forEach(b => {
+          b.classList.remove('seleccionado', 'no');
+        });
+        boton.classList.add('seleccionado');
+        if (boton.dataset.valor === 'no') boton.classList.add('no');
+        actualizarEstadoBoton();
+      });
+    });
+  });
+
+  function actualizarEstadoBoton() {
+    const completo = Object.values(respuestas).every(v => v !== null);
+    botonAnalizar.disabled = !completo;
+    panelResultado.classList.remove('visible');
+  }
+
+  botonAnalizar.addEventListener('click', () => {
+    const score = Object.values(respuestas).filter(v => v === true).length;
+    const nivel = NIVELES.find(n => score >= n.minimo);
+
+    elConteo.textContent = `${score} de 3 criterios cumplidos`;
+    elVeredicto.textContent = nivel.titulo;
+    elVeredicto.style.color = nivel.color;
+    elNota.textContent = NOTA_BASE;
+
+    panelResultado.classList.add('visible');
+  });
+</script>
+
+</body>
+</html>
